@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <!-- Bootstrap CSS 추가 -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body {
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+
+    <div class="container">
+      <div class="row mb-3">
+        <div class="col">
+          <select id="sheetSelect" onchange="loadRowData()" class="form-control">
+            <option>Loading...</option>
+          </select>
+                  <div class="row mt-3">
+        <div class="col">
+<span id="currentRow" class="badge badge-secondary" style="font-size: 1.5em;"></span>
+
+        </div>
+      </div>
+        </div>
+<div class="col">
+  <!-- <button onclick="loadFirstRow()" class="btn btn-warning">첫 줄</button> -->
+  <button onclick="loadPreviousRow()" class="btn btn-danger">이전 줄</button>
+  <div style="height: 10px;"></div>
+  <button onclick="loadNextRow()" class="btn btn-primary">다음 줄</button>
+
+</div>
+<div class="row mb-3">
+<div class="col">
+  <div class="input-group">
+  <span class="input-group-text" id="basic-addon1">행 번호:</span>
+  <input type="number" id="rowNumberInput" class="form-control">
+  </div>
+  <div style="height: 10px;"></div>
+  <button onclick="applyRowNumber()" class="btn btn-success">행이동</button>
+</div>
+</div>
+<div class="row mb-3">
+  <div class="col">
+    <button onclick="openContractLink()" class="btn btn-info">계약 보기</button>
+    <div style="height: 10px;"></div>
+    <button onclick="saveData()" class="btn btn-success">내용 저장</button>
+</div>
+</div>
+
+</div>
+
+
+      </div>
+
+
+
+    </nav>
+<div style="height: 200px;"></div>
+
+
+      <div class="row mb-3">
+        <div class="col" id="dataInput">
+          <!-- 데이터 입력 필드가 여기에 들어갑니다. -->
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <button onclick="saveData()" class="btn btn-success">내용 저장</button>
+        </div>
+      </div>
+
+
+    </div>
+
+    <script>
+      var fileName = "";
+      var currentRow = 2; // 데이터가 시작되는 행
+
+      document.addEventListener("DOMContentLoaded", function() {
+        google.script.run.withSuccessHandler(buildDropdown).getSheetNames();
+      });
+
+    function numberWithCommas1(x) {
+      return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function numberWithCommas2(x) {
+      return x.toString().replace(/,/g, "");
+    }
+      function buildDropdown(sheetNames) {
+        var select = document.getElementById('sheetSelect');
+        select.innerHTML = '';
+        sheetNames.forEach(function(name) {
+          var option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          select.appendChild(option);
+        });
+        loadRowData();
+      }
+
+      function loadRowData() {
+        var sheetName = document.getElementById('sheetSelect').value;
+        google.script.run.withSuccessHandler(displayData).getRowData(sheetName, currentRow);
+        updateCurrentRowDisplay();
+      }
+
+function displayData(data) {
+  var labels = [
+    "검수여부", "수정항목", "계약 구분", "계열사", "거래처명", "사업자등록번호", "계약명", "계약날인일", 
+    "계약시작일", "계약종료일", "계약 자동연장 조건 해당 여부", "계약 자동연장 주기", "총 계약금액", "계약금액", 
+    "계약금액 관련 특이사항", "계약 금액 유형", "선금", "중도금", "잔금", "정기지불 주기", "정기지불금액", 
+    "서비스 종류", "관리형 서비스 유무", "관리형 서비스 등급", "관리형 서비스 요율", "관리형 서비스 요율 입력", 
+    "관리형 서비스 특이사항", "지체상금율", "연체이자율", "계약이행보증금율", "하자이행보증금율", "무상하자 보수 기간", 
+    "크레딧 금액", "인프라 할인율(%)", "약정 계약 해당 여부", "특약조건 해당 여부", "계약서 파일명 입력(1)", 
+    "작성자의 특이사항 기재", "계약서 파일명 입력(2)", "계약서 파일명 입력(3)", "변경 또는 추가 약정 해당 여부", "비고"
+  ];
+
+  var inputDiv = document.getElementById('dataInput');
+  inputDiv.innerHTML = '';
+
+  data.forEach(function(value, index) {
+    var inputGroup = document.createElement('div');
+    inputGroup.className = 'input-group mb-2';
+
+    var inputLabel = document.createElement('div');
+    inputLabel.className = 'input-group-prepend';
+    inputLabel.innerHTML = `<span class="input-group-text">${labels[index]}:</span>`;
+
+    var input;
+
+if (labels[index] === "검수여부") {
+  input = document.createElement('select');
+  input.className = 'form-control';
+  input.id = 'approvalStatus';
+  var options = ["검수완료", "검수전", "수정"];
+  
+  options.forEach(function(option) {
+    var optionElement = document.createElement('option');
+    optionElement.value = option;
+    optionElement.textContent = option;
+    input.appendChild(optionElement);
+  });
+
+  // 받아온 값으로 초기값 설정
+  input.value = value;
+  
+  // 색상 설정
+  if (value === "검수완료") {
+    input.style.color = 'blue'; // 텍스트 색상 설정
+    input.style.backgroundColor = 'lightblue'; // 배경색 설정
+  }
+}
+    else if (labels[index] === "계약 금액 유형") {
+      input = document.createElement('select');
+      input.className = 'form-control';
+      input.id = 'approvalStatus';
+      var options = ["정기지불", "선금, 중도금, 잔금", "해당없음", "종량과금제"];
+      options.forEach(function(option) {
+        var optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        input.appendChild(optionElement);
+      });
+        // 받아온 값으로 초기값 설정
+
+      // 만약 계약 금액 유형에 해당하지 않으면 원래 값 추가
+    if (!options.includes(value)) {
+        var optionElement = document.createElement('option');
+        optionElement.value = value;
+        optionElement.textContent = value;
+        input.appendChild(optionElement);
+    }
+      input.value = value;
+    }
+
+
+    else if (labels[index] === "관리형 서비스 유무") {
+      input = document.createElement('select');
+      input.className = 'form-control';
+      input.id = 'approvalStatus';
+      var options = ["No", "Yes"];
+      options.forEach(function(option) {
+        var optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        input.appendChild(optionElement);
+      });
+        // 받아온 값으로 초기값 설정
+      input.value = value;
+    }
+    else if (labels[index] === "변경 또는 추가 약정 해당 여부") {
+      input = document.createElement('select');
+      input.className = 'form-control';
+      input.id = 'approvalStatus';
+      var options = ["No", "Yes"];
+      options.forEach(function(option) {
+        var optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        input.appendChild(optionElement);
+      });
+        // 받아온 값으로 초기값 설정
+      input.value = value;
+    }
+    else if (labels[index] === "계약 자동연장 조건 해당 여부") {
+      input = document.createElement('select');
+      input.className = 'form-control';
+      input.id = 'approvalStatus';
+      var options = ["No (A-5 문항으로)", "Yes (A-4-4 문항으로)"];
+      options.forEach(function(option) {
+        var optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        input.appendChild(optionElement);
+      });
+        // 받아온 값으로 초기값 설정
+  input.value = value;
+    }
+        else if (labels[index] === "정기지불 주기") {
+      input = document.createElement('select');
+      input.className = 'form-control';
+      input.id = 'approvalStatus';
+      var options = ["매월", "매분기", "매년"];
+      options.forEach(function(option) {
+        var optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        input.appendChild(optionElement);
+      });
+        // 받아온 값으로 초기값 설정
+  input.value = value;
+    }
+    else if (labels[index] === "계약서 파일명 입력(1)") {
+  input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'form-control';
+  input.value = value;
+  fileName = input.value;
+  input.dataset.column = index + 1;
+}
+    else if (labels[index] === "계약금액") {
+      input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-control';
+      input.value = numberWithCommas1(value);
+      input.dataset.column = index + 1;
+}
+    else if (labels[index] === "선금") {
+      input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-control';
+      input.value = numberWithCommas1(value);
+      input.dataset.column = index + 1;
+}
+    else if (labels[index] === "중도금") {
+      input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-control';
+      input.value = numberWithCommas1(value);
+      input.dataset.column = index + 1;
+}
+    else if (labels[index] === "잔금") {
+      input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-control';
+      input.value = numberWithCommas1(value);
+      input.dataset.column = index + 1;
+}
+    else if (labels[index] === "정기지불금액") {
+      input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-control';
+      input.value = numberWithCommas1(value);
+      input.dataset.column = index + 1;
+}
+     else {
+      input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-control';
+      input.value = value;
+      input.dataset.column = index + 1;
+    }
+
+    inputGroup.appendChild(inputLabel);
+    inputGroup.appendChild(input);
+
+    inputDiv.appendChild(inputGroup);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  // 버튼 생성
+  var contractButton = document.createElement('button');
+  contractButton.className = 'btn btn-info';
+  contractButton.textContent = '보기';
+  contractButton.onclick = openContractLink;
+
+  // "계약서 파일명 입력(1)"의 input 요소 찾기
+  var contractInput = document.querySelector('input[data-column="39"]');
+
+  // input 요소의 부모 요소에 버튼 추가
+  contractInput.parentNode.appendChild(contractButton);
+});
+
+function openContractLink() {
+  if (fileName.trim() !== "") {
+    var driveSearchLink = 'https://drive.google.com/drive/search?q=' + encodeURIComponent(fileName);
+    window.open(driveSearchLink, 'find');
+  } else {
+    alert('계약서 파일명을 입력하세요.');
+  }
+}
+
+function loadFirstRow() {
+  currentRow = 2; // 현재 줄을 맨 위로 초기화
+  loadRowData();
+}
+
+
+      function loadPreviousRow() {
+        if (currentRow > 2) {
+          currentRow--;
+          loadRowData();
+        }
+      }
+
+      function loadNextRow() {
+        currentRow++;
+        loadRowData();
+      }
+
+function saveData() {
+  var sheetName = document.getElementById('sheetSelect').value;
+  
+  // 모든 입력 필드와 콤보박스 선택
+  var inputsAndSelects = document.getElementById('dataInput').querySelectorAll('input, select');
+  
+  // 선택된 모든 입력 필드와 콤보박스의 값을 가져와서 배열로 저장
+  var rowData = Array.from(inputsAndSelects).map(input => input.value);
+  
+  // 서버로 데이터 업데이트 요청
+  google.script.run.updateRowData(sheetName, currentRow, rowData);
+
+  // 최상단 이동
+  window.scrollTo(0, 0);
+}
+
+
+      function updateCurrentRowDisplay() {
+        document.getElementById('currentRow').textContent = '현재 줄: ' + currentRow;
+      }
+
+        function applyRowNumber() {
+    var rowNumberInput = document.getElementById('rowNumberInput');
+    var selectedRow = parseInt(rowNumberInput.value);
+
+    if (!isNaN(selectedRow) && selectedRow >= 2) {
+      currentRow = selectedRow;
+      loadRowData();
+    } else {
+      alert('올바른 행 번호를 입력하세요.');
+    }
+  }
+    </script>
+  </body>
+</html>
